@@ -1,0 +1,4 @@
+analyzer:
+  errors:
+    unused_import: ignore
+    prefer_const_constructors: ignore
