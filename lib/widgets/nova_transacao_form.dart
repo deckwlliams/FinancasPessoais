@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 class NovaTransacaoForm extends StatefulWidget {
   final Function(String, double, bool) onSubmit;
+  final bool isReceitaInicial;
 
-  const NovaTransacaoForm({super.key, required this.onSubmit});
+  const NovaTransacaoForm({
+    super.key,
+    required this.onSubmit,
+    required this.isReceitaInicial,
+  });
 
   @override
   State<NovaTransacaoForm> createState() => _NovaTransacaoFormState();
@@ -12,11 +17,18 @@ class NovaTransacaoForm extends StatefulWidget {
 class _NovaTransacaoFormState extends State<NovaTransacaoForm> {
   final tituloController = TextEditingController();
   final valorController = TextEditingController();
-  bool isReceita = true;
+  late bool isReceita;
+
+  @override
+  void initState() {
+    super.initState();
+    isReceita = widget.isReceitaInicial;
+  }
 
   void submit() {
-    final titulo = tituloController.text;
-    final valor = double.tryParse(valorController.text) ?? 0;
+    final titulo = tituloController.text.trim();
+    final valor =
+        double.tryParse(valorController.text.replaceAll(',', '.')) ?? 0;
 
     if (titulo.isEmpty || valor <= 0) return;
 
@@ -36,25 +48,21 @@ class _NovaTransacaoFormState extends State<NovaTransacaoForm> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            isReceita ? 'Nova Entrada' : 'Nova Saída',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: tituloController,
-            decoration: const InputDecoration(labelText: 'Título'),
+            decoration: const InputDecoration(labelText: 'Descrição'),
           ),
           TextField(
             controller: valorController,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(labelText: 'Valor'),
           ),
-          SwitchListTile(
-            title: const Text('É receita?'),
-            value: isReceita,
-            onChanged: (value) {
-              setState(() {
-                isReceita = value;
-              });
-            },
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           ElevatedButton(
             onPressed: submit,
             child: const Text('Salvar'),

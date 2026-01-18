@@ -1,154 +1,233 @@
 import 'package:flutter/material.dart';
+import '/widgets/nova_transacao_form.dart';
 
-class Financa {
-  final String descricao;
-  final double valor;
-  final bool isEntrada;
+class HomePage extends StatelessWidget {
+  final Function(String, double, bool) onAdd;
 
-  Financa(
-      {required this.descricao, required this.valor, required this.isEntrada});
-}
+  const HomePage({
+    super.key,
+    required this.onAdd, required void Function(double entradas, double saidas) onUpdate,
+  });
 
-class HomePage extends StatefulWidget {
-  final Function(double, double)? onUpdate;
-
-  const HomePage({super.key, this.onUpdate});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  final List<Financa> _financas = [];
-
-  double get totalEntradas =>
-      _financas.where((f) => f.isEntrada).fold(0, (sum, f) => sum + f.valor);
-  double get totalSaidas =>
-      _financas.where((f) => !f.isEntrada).fold(0, (sum, f) => sum + f.valor);
-  double get saldo => totalEntradas - totalSaidas;
-
-  void _notificarResumo() {
-    widget.onUpdate?.call(totalEntradas, totalSaidas);
-  }
-
-  void _adicionarFinanca(Financa f) {
-    setState(() {
-      _financas.add(f);
-      _notificarResumo();
-    });
-  }
-
-  void _editarFinanca(int index, Financa f) {
-    setState(() {
-      _financas[index] = f;
-      _notificarResumo();
-    });
-  }
-
-  void _removerFinanca(int index) {
-    setState(() {
-      _financas.removeAt(index);
-      _notificarResumo();
-    });
-  }
-
-  void _abrirFormulario({Financa? financa, int? index}) {
+  void _abrirFormulario(BuildContext context, bool isReceita) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => FinanceForm(
-        financa: financa,
-        onSalvar: (nova) {
-          if (index == null) {
-            _adicionarFinanca(nova);
-          } else {
-            _editarFinanca(index, nova);
-          }
-        },
+      builder: (_) {
+        return NovaTransacaoForm(
+          onSubmit: (titulo, valor, _) {
+            onAdd(titulo, valor, isReceita);
+          },
+        );
+      },
+    );
+  }
+
+  void _abrirOpcoes(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (_) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.arrow_upward, color: Colors.green),
+              title: const Text('Adicionar Entrada'),
+              onTap: () {
+                Navigator.pop(context);
+                _abrirFormulario(context, true);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_downward, color: Colors.red),
+              title: const Text('Adicionar Saída'),
+              onTap: () {
+                Navigator.pop(context);
+                _abrirFormulario(context, false);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Finanças')),
+      appBar: AppBar(
+        title: const Text('Minhas Finanças'),
+        centerTitle: true,
+      ),
+
+      // 🔘 BOTÃO FLUTUANTE COM AS DUAS OPÇÕES
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _abrirFormulario(),
+        onPressed: () => _abrirOpcoes(context),
         child: const Icon(Icons.add),
       ),
-      body: Column(
+
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _saldoCard(),
+            const SizedBox(height: 16),
+            _resumoRow(),
+            const SizedBox(height: 24),
+            _acoesTitulo(),
+            const SizedBox(height: 12),
+            _acoesGrid(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🔹 CARD DE SALDO
+  Widget _saldoCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.green,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade700, Colors.green.shade400],
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Saldo atual',
-                      style: TextStyle(color: Colors.white70)),
-                  const SizedBox(height: 8),
-                  Text('R\$ ${saldo.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
+          Text(
+            'Saldo Atual',
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'R\$ 0,00',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          Expanded(
-            child: _financas.isEmpty
-                ? const Center(child: Text('Nenhuma finança cadastrada'))
-                : ListView.builder(
-                    itemCount: _financas.length,
-                    itemBuilder: (context, index) {
-                      final f = _financas[index];
-                      return Dismissible(
-                        key: ValueKey('$index${f.descricao}'),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          color: Colors.red,
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: (_) => _removerFinanca(index),
-                        child: Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          child: ListTile(
-                            onTap: () =>
-                                _abrirFormulario(financa: f, index: index),
-                            leading: Icon(
-                                f.isEntrada
-                                    ? Icons.arrow_downward
-                                    : Icons.arrow_upward,
-                                color: f.isEntrada ? Colors.green : Colors.red),
-                            title: Text(f.descricao),
-                            trailing: Text(
-                                '${f.isEntrada ? '+' : '-'} R\$ ${f.valor.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                    color:
-                                        f.isEntrada ? Colors.green : Colors.red,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+        ],
+      ),
+    );
+  }
+
+  // 🔹 RESUMO
+  Widget _resumoRow() {
+    return Row(
+      children: [
+        _resumoCard(
+          titulo: 'Entradas',
+          valor: 'R\$ 0,00',
+          cor: Colors.green,
+          icone: Icons.arrow_upward,
+        ),
+        const SizedBox(width: 12),
+        _resumoCard(
+          titulo: 'Saídas',
+          valor: 'R\$ 0,00',
+          cor: Colors.red,
+          icone: Icons.arrow_downward,
+        ),
+      ],
+    );
+  }
+
+  Widget _resumoCard({
+    required String titulo,
+    required String valor,
+    required Color cor,
+    required IconData icone,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icone, color: cor),
+            const SizedBox(height: 8),
+            Text(
+              titulo,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              valor,
+              style: TextStyle(color: cor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🔹 TÍTULO
+  Widget _acoesTitulo() {
+    return const Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'Ações rápidas',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  // 🔹 GRID
+  Widget _acoesGrid() {
+    return Expanded(
+      child: GridView.count(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        children: const [
+          _AcaoCard(
+            titulo: 'Adicionar Entrada',
+            icone: Icons.add_circle,
+            cor: Colors.green,
+          ),
+          _AcaoCard(
+            titulo: 'Adicionar Saída',
+            icone: Icons.remove_circle,
+            cor: Colors.red,
+          ),
+          _AcaoCard(
+            titulo: 'Resumo',
+            icone: Icons.bar_chart,
+            cor: Colors.blue,
+          ),
+          _AcaoCard(
+            titulo: 'Configurações',
+            icone: Icons.settings,
+            cor: Colors.grey,
           ),
         ],
       ),
@@ -156,74 +235,49 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class FinanceForm extends StatefulWidget {
-  final Financa? financa;
-  final Function(Financa) onSalvar;
+// 🔹 CARD DE AÇÃO
+class _AcaoCard extends StatelessWidget {
+  final String titulo;
+  final IconData icone;
+  final Color cor;
 
-  const FinanceForm({super.key, this.financa, required this.onSalvar});
-
-  @override
-  State<FinanceForm> createState() => _FinanceFormState();
-}
-
-class _FinanceFormState extends State<FinanceForm> {
-  late TextEditingController _descricaoController;
-  late TextEditingController _valorController;
-  late bool _isEntrada;
-
-  @override
-  void initState() {
-    super.initState();
-    _descricaoController =
-        TextEditingController(text: widget.financa?.descricao ?? '');
-    _valorController =
-        TextEditingController(text: widget.financa?.valor.toString() ?? '');
-    _isEntrada = widget.financa?.isEntrada ?? true;
-  }
-
-  void _salvar() {
-    final descricao = _descricaoController.text.trim();
-    final valor = double.tryParse(_valorController.text.replaceAll(',', '.'));
-    if (descricao.isEmpty || valor == null || valor <= 0) return;
-
-    widget.onSalvar(
-        Financa(descricao: descricao, valor: valor, isEntrada: _isEntrada));
-    Navigator.pop(context);
-  }
+  const _AcaoCard({
+    required this.titulo,
+    required this.icone,
+    required this.cor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(widget.financa == null ? 'Nova Finança' : 'Editar Finança',
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          TextField(
-              controller: _descricaoController,
-              decoration: const InputDecoration(labelText: 'Descrição')),
-          const SizedBox(height: 8),
-          TextField(
-              controller: _valorController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Valor')),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            title: const Text('É um ganho?'),
-            value: _isEntrada,
-            onChanged: (v) => setState(() => _isEntrada = v),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 3),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: _salvar, child: const Text('Salvar')),
         ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icone, size: 40, color: cor),
+            const SizedBox(height: 12),
+            Text(
+              titulo,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+    

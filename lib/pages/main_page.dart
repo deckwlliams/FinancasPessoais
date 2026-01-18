@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide HomePage;
 import 'home_page.dart';
 import 'resumo_page.dart';
 import 'settings_page.dart';
@@ -26,8 +26,15 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(onUpdate: atualizarResumo),
-      ResumoPage(totalEntradas: totalEntradas, totalSaidas: totalSaidas),
+      HomePage(
+        onUpdate: atualizarResumo,
+        onAdd: (String p1, double p2, bool p3) {},
+      ),
+      ResumoPage(
+        totalEntradas: totalEntradas,
+        totalSaidas: totalSaidas,
+        transacoes: [],
+      ),
       const SettingsPage(),
     ];
 
